@@ -1,23 +1,19 @@
+//RM:557505 - Gustavo Sandrini
+
 import { useState } from 'react';
 import { Button, FlatList, ListRenderItemInfo, StyleSheet, Text, TextInput, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator, StackNavigationProp } from '@react-navigation/stack';
-
-// Tipando o StackNavigator
-type RootStackParamList = {
-  FormularioAluno: undefined;
-  ListarAlunos: undefined;
-};
-
-type NavigationProp = StackNavigationProp<RootStackParamList>;
+import { NavigationContainer, ParamListBase } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
 const { Navigator, Screen } = createStackNavigator();
 
-const TituloGeral = () => (
-  <View style={styles.viewTitulo}>
-    <Text style={styles.titulo}>Controle de Alunos</Text>
-  </View>
-);
+const TituloGeral = () => {
+  return (
+    <View style={styles.viewTitulo}>
+      <Text style={styles.titulo}>Controle de Alunos</Text>
+    </View>
+  );
+};
 
 interface Aluno {
   ra: number;
@@ -25,89 +21,91 @@ interface Aluno {
   nascimento: string;
 }
 
-interface AlunoFormularioProps {
+interface AlunoFormularioProps extends ParamListBase {
   onGravar: (ra: string, nome: string, nascimento: string) => void;
-  navigation: NavigationProp;
 }
 
-const FormularioAluno = ({ onGravar, navigation }: AlunoFormularioProps) => {
+const FormularioAluno = (props: AlunoFormularioProps): React.ReactElement => {
   const [ra, setRa] = useState('');
   const [nome, setNome] = useState('');
   const [nascimento, setNascimento] = useState('');
 
-  const inputs = [
-    { label: 'RA:', value: ra, setValue: setRa, keyboardType: 'numeric' },
-    { label: 'Nome:', value: nome, setValue: setNome },
-    { label: 'Nascimento:', value: nascimento, setValue: setNascimento },
-  ];
-
   return (
     <View style={styles.viewFormulario}>
       <View style={styles.form}>
-        {inputs.map(({ label, value, setValue, keyboardType = 'default' }) => (
-          <View style={styles.viewInput} key={label}>
-            <Text style={styles.textInput}>{label}</Text>
-            <TextInput
-              style={styles.input}
-              value={value}
-              onChangeText={(text) => setValue(text.trim())}
-            />
-          </View>
-        ))}
+        <View style={styles.viewInput}>
+          <Text style={styles.textInput}>RA:</Text>
+          <TextInput style={styles.input} value={ra} onChangeText={setRa} />
+        </View>
+        <View style={styles.viewInput}>
+          <Text style={styles.textInput}>Nome:</Text>
+          <TextInput style={styles.input} value={nome} onChangeText={setNome} />
+        </View>
+        <View style={styles.viewInput}>
+          <Text style={styles.textInput}>Nascimento:</Text>
+          <TextInput style={styles.input} value={nascimento} onChangeText={setNascimento} />
+        </View>
         <View style={styles.viewButton}>
-          <Button title="Gravar" onPress={() => onGravar(ra, nome, nascimento)} />
-          <Button title="Ir para Listagem" onPress={() => navigation.navigate('ListarAlunos')} />
+          <Button title="Gravar" onPress={() => props.onGravar(ra, nome, nascimento)} />
+          <Button title="Ir para Listagem" onPress={() => props.navigation.navigate('ListarAlunos')} />
         </View>
       </View>
     </View>
   );
 };
 
-const ItemAluno = ({ item }: ListRenderItemInfo<Aluno>) => (
-  <View style={styles.itemLista}>
-    <Text style={styles.textoRALista}>{item.ra}</Text>
-    <Text style={styles.textoNormalLista}>{item.nome}</Text>
-    <Text style={styles.textoNormalLista}>{item.nascimento}</Text>
-  </View>
-);
+const ItemAluno = (props: ListRenderItemInfo<Aluno>): React.ReactElement => {
+  return (
+    <View style={styles.itemLista}>
+      <Text style={styles.textoRALista}>{props.item.ra}</Text>
+      <Text style={styles.textoNormalLista}>{props.item.nome}</Text>
+      <Text style={styles.textoNormalLista}>{props.item.nascimento}</Text>
+    </View>
+  );
+};
 
-interface AlunoListagemProps {
+interface AlunoListagemProps extends ParamListBase {
   lista: Aluno[];
-  navigation: NavigationProp;
 }
 
-const ListarAlunos = ({ lista, navigation }: AlunoListagemProps) => (
-  <View style={styles.viewListagem}>
-    <FlatList data={lista} renderItem={ItemAluno} keyExtractor={(item) => item.ra.toString()} />
-    <View style={styles.botaoListagem}>
-      <Button title="Ir para Formulário" onPress={() => navigation.navigate('FormularioAluno')} />
+const ListarAlunos = (props: AlunoListagemProps): React.ReactElement => {
+  return (
+    <View style={styles.viewListagem}>
+      <FlatList data={props.lista} renderItem={ItemAluno} />
+      <View style={styles.botaoListagem}>
+        <Button title="Ir para Formulario" onPress={() => props.navigation.navigate('FormularioAluno')} />
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 export default function App() {
   const [listaAlunos, setListaAlunos] = useState<Aluno[]>([]);
 
   const gravar = (ra: string, nome: string, nascimento: string) => {
-    setListaAlunos((prevLista) => [
-      ...prevLista,
-      { ra: parseInt(ra, 10) || 0, nome: nome.trim(), nascimento: nascimento.trim() },
-    ]);
+    const aluno = {
+      ra: parseInt(ra),
+      nome: nome,
+      nascimento: nascimento,
+    };
+
+    const novaLista = [...listaAlunos, aluno];
+    setListaAlunos(novaLista);
   };
 
   return (
-    <View style={styles.viewPrincipal}>
-      <View style={styles.viewPrincipalTop}>
+    <View style={{ flex: 1 }}>
+      <View style={styles.viewPrincipal1}>
         <TituloGeral />
       </View>
-      <View style={styles.viewPrincipalBottom}>
+      <View style={styles.viewPrincipal2}>
         <NavigationContainer>
           <Navigator>
             <Screen name="FormularioAluno" options={{ headerShown: false }}>
-              {({ navigation }) => <FormularioAluno navigation={navigation} onGravar={gravar} />}
+              {(navProps: ParamListBase) => <FormularioAluno {...navProps} onGravar={gravar} />}
             </Screen>
             <Screen name="ListarAlunos" options={{ headerShown: false }}>
-              {({ navigation }) => <ListarAlunos navigation={navigation} lista={listaAlunos} />}
+              {(navProps: ParamListBase) => <ListarAlunos {...navProps} lista={listaAlunos} />}
             </Screen>
           </Navigator>
         </NavigationContainer>
@@ -117,66 +115,66 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  viewPrincipal: {
-    flex: 1,
-  },
-  viewPrincipalTop: {
-    flex: 0.2,
+  viewPrincipal1: {
+    flex: 2, 
     backgroundColor: 'lightblue',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  viewPrincipalBottom: {
-    flex: 0.8,
+  viewPrincipal2: {
+    flex: 8,
   },
   viewTitulo: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   titulo: {
-    fontSize: 80,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: 60,
+    color: 'white',
     textAlign: 'center',
+    fontWeight: 'bold',
+    width: 400,
   },
   viewFormulario: {
-    flex: 1,
     backgroundColor: 'lightblue',
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 50,
+    paddingVertical: 80,
   },
   form: {
-    width: '80%',
-    padding: 30,
+    flex: 1,
+    padding: 20,
+    alignSelf: 'center',
+    width: 700,
   },
   viewInput: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 10,
+    paddingVertical: 15,
   },
   textInput: {
-    fontSize: 17,
-    margin: 10,
-    color: '#fff',
-    width: 100,
+    fontSize: 20,
+    color: 'white',
+    width: 120,
     fontWeight: 'bold',
   },
   input: {
     flex: 1,
-    height: 40,
-    borderColor: '#5263ff',
-    borderWidth: 1,
-    borderRadius: 8,
+    height: 50,
+    borderColor: 'cyan',
+    borderWidth: 2,
+    borderRadius: 12,
     paddingHorizontal: 10,
-    backgroundColor: '#FFF',
+    backgroundColor: 'white',
     color: 'black',
-    fontSize: 18,
+    fontSize: 20,
   },
   viewButton: {
+    justifyContent: 'center',
     alignSelf: 'center',
-    marginTop: 20,
-    gap: 10,
+    width: 150,
+    marginTop: 100,
+    gap: 30,
   },
   viewListagem: {
     flex: 1,
@@ -184,23 +182,32 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   itemLista: {
-    padding: 15,
-    borderWidth: 1,
+    flex: 1,
+    padding: 20,
+    flexDirection: 'column',
+    borderWidth: 2,
     borderColor: 'green',
-    borderRadius: 8,
-    backgroundColor: 'yellow',
-    marginBottom: 10,
+    borderRadius: 16,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    width: 500,
+    backgroundColor: '#FFFDD0',
+    marginBottom: 20,
   },
   textoRALista: {
-    fontSize: 18,
+    fontSize: 20,
+    color: 'black',
     fontWeight: 'bold',
   },
   textoNormalLista: {
-    fontSize: 16,
+    fontSize: 20,
     color: 'black',
+    fontWeight: 'bold',
   },
   botaoListagem: {
-    marginTop: 20,
+    width: 350,
+    paddingBottom: 75,
+    marginTop: 28,
     alignSelf: 'center',
   },
 });
